@@ -1,0 +1,244 @@
+{
+  "schema_version": "v2",
+  "work_unit_id": "WU-001",
+  "architecture_document": "# Architecture \u2014 Expense Splitter\n\n## Overview\n\n**Expense Splitter** is a web application designed to simplify the process of splitting expenses among groups. Users can create expense records, assign participants, and the application calculates who owes whom to settle shared costs fairly.\n\nThe initial phase focuses on establishing a robust deployment pipeline via GitHub Pages. This foundational step validates that commits to the main branch automatically deploy to production (https://EshaanGulia.github.io/expense-splitter/), enabling rapid iteration on application features without manual intervention. The smoke test uses a minimal static HTML page to verify the deployment pipeline is functional before adding dynamic application logic.\n\n## System Architecture\n\nThe Expense Splitter application follows a phased architecture:\n\n**Phase 1 (Current): GitHub Pages Smoke Test**\n- Static HTML landing page (`index.html`) at repository root\n- Serves as a proof-of-concept for the deployment pipeline\n- No backend services, no build step, no external dependencies\n- Demonstrates end-to-end deployment: commit \u2192 GitHub Pages \u2192 live URL\n\n**Phase 2 (Future): Dynamic Web Application**\n- React or Next.js frontend for interactive user interface\n- Backend API for expense tracking and settlement calculations\n- Database for persistence (SQLite for MVP, potentially PostgreSQL for production)\n- Build system (webpack/Next.js) to compile frontend and backend\n\n**Phase 3 (Future): Enhanced Features**\n- User authentication and authorization\n- Persistent storage of expense records and group information\n- Advanced settlement algorithms (minimize transactions)\n- Mobile responsiveness and offline support\n\n```mermaid\ngraph TB\n    subgraph \"GitHub\"\n        GH[\"GitHub Repository<br/>(main branch)\"]\n    end\n    \n    subgraph \"GitHub Pages Pipeline\"\n        PAGES[\"GitHub Pages<br/>(Static Hosting)\"]\n    end\n    \n    subgraph \"Phase 1: Smoke Test\"\n        HTML[\"index.html<br/>(Static Page)\"]\n    end\n    \n    subgraph \"Phase 2+: Application\"\n        FRONTEND[\"React/Next.js<br/>(Frontend)\"]\n        BACKEND[\"Node.js API<br/>(Backend)\"]\n        DB[(\"Database<br/>(SQLite/PG)\")]\n    end\n    \n    subgraph \"Client\"\n        BROWSER[\"Web Browser\"]\n    end\n    \n    GH -->|commit index.html| HTML\n    HTML -->|deploy to| PAGES\n    PAGES -->|HTTP GET| BROWSER\n    BROWSER -->|renders| BROWSER\n    \n    GH -.->|future: deploy build| FRONTEND\n    FRONTEND -.->|fetch data| BACKEND\n    BACKEND -.->|query| DB\n```\n\n## Data Model\n\n**Phase 1 (Current)**\nNo data persistence. Static HTML only.\n\n**Phase 2+ (Future)**\n\n```mermaid\nerDiagram\n    EXPENSE ||--o{ PARTICIPANT : \"includes\"\n    GROUP ||--o{ EXPENSE : \"contains\"\n    GROUP ||--o{ PARTICIPANT : \"has\"\n    USER ||--o{ GROUP : \"manages\"\n    \n    EXPENSE {\n        string id PK\n        string group_id FK\n        string description\n        decimal amount\n        string payer_id FK\n        datetime created_at\n        datetime updated_at\n    }\n    \n    PARTICIPANT {\n        string id PK\n        string expense_id FK\n        string group_id FK\n        string user_id FK\n        decimal amount_owed\n    }\n    \n    GROUP {\n        string id PK\n        string name\n        string owner_id FK\n        datetime created_at\n        datetime updated_at\n    }\n    \n    USER {\n        string id PK\n        string name\n        string email\n        string password_hash\n        datetime created_at\n    }\n```\n\n## API Design\n\n**Phase 1 (Current)**\nNo API. Static HTML file served as-is.\n\n**Phase 2+ (Future)**\n\n### Groups\n- `GET /api/groups` \u2014 List all groups for authenticated user\n- `POST /api/groups` \u2014 Create a new group\n- `GET /api/groups/:id` \u2014 Fetch group details\n- `PUT /api/groups/:id` \u2014 Update group\n- `DELETE /api/groups/:id` \u2014 Delete group\n\n### Expenses\n- `GET /api/groups/:groupId/expenses` \u2014 List expenses in a group\n- `POST /api/groups/:groupId/expenses` \u2014 Create an expense\n- `GET /api/expenses/:id` \u2014 Fetch expense details\n- `PUT /api/expenses/:id` \u2014 Update expense\n- `DELETE /api/expenses/:id` \u2014 Delete expense\n\n### Settlement\n- `GET /api/groups/:groupId/settlement` \u2014 Calculate who owes whom\n\n## UI / Frontend\n\n**Phase 1 (Current)**\nMinimal static landing page:\n- Page title: \"Expense Splitter\"\n- Heading (h1): \"Expense Splitter \u2014 Coming Soon\" (with em-dash U+2014)\n- Paragraph (p): \"Coming soon. Check back later.\"\n- No interactive elements, no styling, no JavaScript\n\n**Phase 2+ (Future)**\n\n```mermaid\ngraph TD\n    LOGIN[\"Login Page\"]\n    DASHBOARD[\"Dashboard<br/>(Groups List)\"]\n    GROUP_DETAIL[\"Group Detail<br/>(Expenses List)\"]\n    ADD_EXPENSE[\"Add Expense Form\"]\n    SETTLEMENT[\"Settlement Summary<br/>(Who Owes Whom)\"]\n    \n    LOGIN -->|authenticate| DASHBOARD\n    DASHBOARD -->|select group| GROUP_DETAIL\n    GROUP_DETAIL -->|add| ADD_EXPENSE\n    ADD_EXPENSE -->|save| GROUP_DETAIL\n    GROUP_DETAIL -->|view settlement| SETTLEMENT\n    SETTLEMENT -->|back| DASHBOARD\n```\n\n**Key Screens:**\n1. **Login** \u2014 Email/password authentication\n2. **Dashboard** \u2014 List user's groups; create new group\n3. **Group Detail** \u2014 View expenses in a group; add new expenses; see settlement summary\n4. **Add Expense** \u2014 Form to enter expense details (description, amount, payer, participants)\n5. **Settlement Summary** \u2014 Calculated balance (who owes whom and how much)\n\n## Technology Stack\n\n| Component | Technology | Rationale |\n|-----------|-----------|----------|\n| **Version Control** | Git + GitHub | Industry standard; GitHub Pages hosting included |\n| **Frontend (Phase 1)** | HTML5 | Minimal smoke test; no framework needed; validates deployment pipeline |\n| **Frontend (Phase 2+)** | React or Next.js | Modern, component-based; Server-Side Rendering (SSR) for SEO if needed; Next.js for full-stack JavaScript |\n| **Backend (Phase 2+)** | Node.js + Express or Next.js API Routes | Same language as frontend (TypeScript); reduce context switching |\n| **Database (Phase 2+)** | SQLite (MVP) \u2192 PostgreSQL (Production) | SQLite for rapid prototyping; PostgreSQL for scalability and multi-user concurrency |\n| **Hosting (Phase 1)** | GitHub Pages | Free static hosting; automatic deployment from git push; no configuration required |\n| **Hosting (Phase 2+)** | Vercel (Next.js) or AWS Lambda + S3 | Vercel integrates seamlessly with Next.js; AWS Lambda for serverless backend |\n| **Build Tool** | Next.js (unified) or Webpack + Node.js separately | Next.js combines frontend build and backend API in one framework |\n| **Package Manager** | npm (with Node.js) | Standard; lock file for reproducible builds |\n| **Language** | TypeScript (Phase 2+) | Type safety reduces bugs; better IDE support and documentation |\n| **Testing** | Jest + React Testing Library (frontend), Jest + Supertest (backend) | Standard ecosystem; unit and integration tests |\n\n## Key Technical Decisions\n\n1. **Static HTML for Phase 1 (Smoke Test)**\n   - **Decision:** Use a single `index.html` file to validate the GitHub Pages deployment pipeline before building the application.\n   - **Rationale:** Validates the entire deployment flow (git commit \u2192 GitHub Pages \u2192 live URL) with minimal complexity. Separates deployment concerns from application logic. Provides immediate feedback on pipeline health.\n   - **Alternative Considered:** Skip smoke test and build the full application immediately. **Rejected because:** Higher risk of deployment failures in production; harder to debug pipeline issues once mixed with application code; doesn't follow the principle of \"validate infrastructure before building on it.\"\n\n2. **GitHub Pages as Primary Hosting**\n   - **Decision:** Use GitHub Pages for Phase 1 static content and consider it as a model for future deployments (Vercel for Phase 2+).\n   - **Rationale:** Free, automatic deployment from git push, no additional configuration required, tight GitHub integration.\n   - **Alternative Considered:** Self-hosted server (AWS EC2) or Heroku. **Rejected because:** Adds operational overhead; GitHub Pages is sufficient for the scope; cost increases unnecessarily.\n\n3. **UTF-8 Encoding with Em-Dash Character**\n   - **Decision:** Enforce UTF-8 file encoding and use the em-dash character (U+2014) in the heading.\n   - **Rationale:** Em-dash is typographically correct for the \"Expense Splitter \u2014 Coming Soon\" heading; UTF-8 is the web standard; validates that the deployment pipeline preserves character encoding correctly.\n   - **Alternative Considered:** Use ASCII hyphen (-) instead of em-dash. **Rejected because:** Misses an opportunity to validate Unicode handling in the deployment pipeline; typographically incorrect for professional appearance.\n\n4. **Minimal HTML5 Boilerplate (No CSS/JavaScript)**\n   - **Decision:** Create a bare-minimum HTML5 document with only semantic structure; no CSS, no JavaScript, no external assets.\n   - **Rationale:** Focuses the test on the pipeline alone; reduces variables; ensures the page loads instantly. CSS and JavaScript can be added in Phase 2 when the application logic is introduced.\n   - **Alternative Considered:** Add basic CSS styling. **Rejected because:** Increases complexity; the goal is to test deployment, not design; styling will be applied when the full application is built.\n\n5. **Single File at Repository Root**\n   - **Decision:** Place `index.html` at the repository root (`./index.html`) rather than in a subdirectory (e.g., `docs/index.html` or `public/index.html`).\n   - **Rationale:** GitHub Pages is configured to serve from the repository root; placing the file there ensures it serves at the root URL. Simplifies the structure for Phase 1.\n   - **Alternative Considered:** Place in a `public/` or `docs/` directory. **Rejected because:** Requires build-system routing or additional GitHub Pages configuration; not necessary for a static file; would complicate the phase-1 smoke test.\n\n6. **No .gitignore Exceptions**\n   - **Decision:** Commit `index.html` as a normal file; do not add .gitignore rules.\n   - **Rationale:** HTML files should be tracked in version control; no sensitive data or build artifacts in this file. Future build outputs (Phase 2+) may need .gitignore entries, but not Phase 1.\n   - **Alternative Considered:** Create a .gitignore file to explicitly allow *.html. **Rejected because:** Unnecessary; .gitignore is only needed when filtering is required (e.g., node_modules, .env).\n\n7. **Future Build System (Phase 2+)**\n   - **Decision:** Plan to introduce a build system (Next.js, Webpack, or similar) in Phase 2 without retrofitting Phase 1.\n   - **Rationale:** Phase 1 static content remains untouched by the build system; Phase 2+ can replace or extend it as needed. Keeps concerns separate.\n   - **Alternative Considered:** Implement a build system now that processes index.html. **Rejected because:** Adds unnecessary complexity; the smoke test should be simple and isolated; build systems will be introduced when application logic requires them.\n\n## Deployment\n\n**Phase 1 (Current)**\n\n1. **Development**\n   - Developer edits `index.html` in their local environment.\n   - Verifies content locally by opening the file in a browser (optional).\n\n2. **Git Workflow**\n   - Stage the file: `git add index.html`\n   - Commit with a descriptive message: `git commit -m \"Add index.html smoke test for GitHub Pages deployment\"`\n   - Push to main branch: `git push origin main`\n\n3. **Automated Deployment (GitHub Actions / GitHub Pages)**\n   - GitHub detects a push to `main`.\n   - GitHub Pages automatically publishes the content to `https://EshaanGulia.github.io/expense-splitter/`.\n   - Deployment typically completes within 1-10 minutes.\n\n4. **Verification**\n   - User accesses the URL `https://EshaanGulia.github.io/expense-splitter/`.\n   - Confirms HTTP 200 response and correct page content.\n   - Tests in multiple browsers to ensure rendering consistency.\n\n**Phase 2+ (Future)**\n\n1. **Build System**\n   - Source code (React/Next.js, Node.js backend, TypeScript) is committed to `main`.\n   - GitHub Actions workflows run automated tests and build the application.\n\n2. **Hosting**\n   - Frontend builds to static assets and deploys to a CDN (Vercel, Netlify, or CloudFront).\n   - Backend deploys to a serverless platform (Lambda, Cloud Run) or traditional server.\n   - Database migrations are applied (PostgreSQL or other persistence layer).\n\n3. **Monitoring**\n   - Application health checks, error logs, and performance metrics are collected.\n   - Alerts notify the team of deployment failures or production issues.\n\n---\n\n## Summary\n\nThe Expense Splitter project is architected in phases:\n- **Phase 1:** Validate the GitHub Pages deployment pipeline with a minimal static HTML smoke test.\n- **Phase 2:** Introduce a dynamic web application (React/Next.js frontend + Node.js API + database).\n- **Phase 3:** Add advanced features (authentication, complex algorithms, mobile responsiveness).\n\nThis approach de-risks the deployment pipeline early and provides a foundation for rapid feature development in later phases.",
+  "components": [
+    {
+      "name": "Static HTML Landing Page",
+      "responsibility": "Smoke test for GitHub Pages deployment pipeline; validates end-to-end deployment from git commit to live URL",
+      "file": "./index.html",
+      "phase": "Phase 1 (Current)",
+      "inputs": "None (static content)",
+      "outputs": "HTTP 200 response with HTML5 document",
+      "dependencies": "None"
+    },
+    {
+      "name": "GitHub Repository",
+      "responsibility": "Version control and source of truth for application code",
+      "file": "N/A (external service)",
+      "phase": "All Phases",
+      "inputs": "Git commits from developers",
+      "outputs": "Cloneable repository; deployment triggers",
+      "dependencies": "Git, GitHub account"
+    },
+    {
+      "name": "GitHub Pages",
+      "responsibility": "Static hosting and automatic deployment",
+      "file": "N/A (external service)",
+      "phase": "Phase 1 (Current and beyond)",
+      "inputs": "Repository content (main branch)",
+      "outputs": "Served at https://EshaanGulia.github.io/expense-splitter/",
+      "dependencies": "GitHub repository with Pages enabled"
+    },
+    {
+      "name": "Web Browser",
+      "responsibility": "Render and display the HTML page to the user",
+      "file": "N/A (external client)",
+      "phase": "All Phases",
+      "inputs": "HTTP response from GitHub Pages",
+      "outputs": "Rendered web page displayed to user",
+      "dependencies": "Network connectivity, modern browser (Chrome, Firefox, Safari, Edge)"
+    },
+    {
+      "name": "React/Next.js Frontend (Phase 2+)",
+      "responsibility": "Interactive user interface for expense management",
+      "file": "future: src/",
+      "phase": "Phase 2+",
+      "inputs": "User interactions; API responses",
+      "outputs": "Rendered UI; HTTP requests to backend API",
+      "dependencies": "Node.js, npm, React, Next.js"
+    },
+    {
+      "name": "Node.js Backend API (Phase 2+)",
+      "responsibility": "Business logic; expense calculations; settlement algorithms",
+      "file": "future: api/",
+      "phase": "Phase 2+",
+      "inputs": "HTTP requests from frontend",
+      "outputs": "JSON responses; database queries",
+      "dependencies": "Node.js, Express or Next.js API Routes, TypeScript"
+    },
+    {
+      "name": "Database (Phase 2+)",
+      "responsibility": "Persistent storage of groups, expenses, participants, users",
+      "file": "future: migrations/, schema files",
+      "phase": "Phase 2+",
+      "inputs": "SQL queries from backend",
+      "outputs": "Data queries and updates",
+      "dependencies": "SQLite (MVP) or PostgreSQL (Production)"
+    }
+  ],
+  "interactions": [
+    {
+      "from": "Developer",
+      "to": "Git Repository",
+      "action": "Commit index.html with message 'Add index.html smoke test for GitHub Pages deployment'",
+      "protocol": "Git",
+      "description": "Developer stages and commits the new index.html file to the main branch"
+    },
+    {
+      "from": "Developer",
+      "to": "GitHub Repository",
+      "action": "Push to origin/main",
+      "protocol": "Git",
+      "description": "Push commits to remote repository, triggering GitHub Pages deployment"
+    },
+    {
+      "from": "GitHub Repository",
+      "to": "GitHub Pages",
+      "action": "Webhook notification on push to main",
+      "protocol": "GitHub Pages automatic trigger",
+      "description": "GitHub Pages detects changes to main branch and triggers deployment"
+    },
+    {
+      "from": "GitHub Pages",
+      "to": "Web Server",
+      "action": "Deploy content to CDN",
+      "protocol": "GitHub Pages infrastructure",
+      "description": "GitHub Pages builds and distributes the static content to its CDN within 1-10 minutes"
+    },
+    {
+      "from": "User / QA",
+      "to": "GitHub Pages",
+      "action": "HTTP GET https://EshaanGulia.github.io/expense-splitter/",
+      "protocol": "HTTPS",
+      "description": "Smoke test verification: load the live URL and confirm content renders correctly"
+    },
+    {
+      "from": "Frontend (Phase 2+)",
+      "to": "Backend API (Phase 2+)",
+      "action": "HTTP REST calls (GET, POST, PUT, DELETE)",
+      "protocol": "JSON over HTTPS",
+      "description": "Future interaction: frontend requests data and performs operations via API endpoints"
+    },
+    {
+      "from": "Backend API (Phase 2+)",
+      "to": "Database (Phase 2+)",
+      "action": "SQL queries",
+      "protocol": "Database driver (e.g., node-postgres)",
+      "description": "Future interaction: backend queries and updates persistent data"
+    }
+  ],
+  "technology_choices": [
+    {
+      "component": "Version Control",
+      "technology": "Git + GitHub",
+      "rationale": "Industry standard for distributed version control; GitHub provides integrated hosting, issue tracking, and GitHub Pages; no additional configuration needed"
+    },
+    {
+      "component": "Static Hosting (Phase 1)",
+      "technology": "GitHub Pages",
+      "rationale": "Free, automatic deployment from git push, no separate infrastructure setup, validates the deployment pipeline as a smoke test"
+    },
+    {
+      "component": "HTML Markup Language",
+      "technology": "HTML5",
+      "rationale": "Current standard for web pages; semantic elements (h1, p, meta) provide structure; utf-8 encoding support for Unicode characters like em-dash"
+    },
+    {
+      "component": "Character Encoding",
+      "technology": "UTF-8",
+      "rationale": "Web standard; supports Unicode characters (em-dash U+2014); ensures correct rendering across browsers and platforms"
+    },
+    {
+      "component": "Frontend Framework (Phase 2+)",
+      "technology": "React or Next.js",
+      "rationale": "Component-based, modern, large ecosystem, strong community support; Next.js provides full-stack JavaScript and built-in optimization"
+    },
+    {
+      "component": "Backend Framework (Phase 2+)",
+      "technology": "Node.js + Express or Next.js API Routes",
+      "rationale": "Same language as frontend (JavaScript/TypeScript), reduces context switching, large ecosystem, suitable for MVP and scalable architectures"
+    },
+    {
+      "component": "Database (Phase 2+, MVP)",
+      "technology": "SQLite",
+      "rationale": "Zero-configuration, file-based, sufficient for single-user or small team development; no separate database server needed"
+    },
+    {
+      "component": "Database (Phase 2+, Production)",
+      "technology": "PostgreSQL",
+      "rationale": "Robust, multi-user support, ACID transactions, rich features for complex queries, industry-standard for production web applications"
+    },
+    {
+      "component": "Package Manager",
+      "technology": "npm (with Node.js)",
+      "rationale": "Default package manager for JavaScript/TypeScript; lock files ensure reproducible builds; large ecosystem of reusable libraries"
+    },
+    {
+      "component": "Language (Phase 2+)",
+      "technology": "TypeScript",
+      "rationale": "Type safety reduces runtime bugs, better IDE support, improved refactoring, easier to maintain large codebases"
+    }
+  ],
+  "context_manifest": {
+    "relevant_files": [
+      "./README.md",
+      "./.gitignore (if created in future phases)"
+    ],
+    "relevant_modules": [
+      "None for Phase 1 (static HTML only)"
+    ],
+    "interfaces": [
+      "HTTP/HTTPS protocol for GitHub Pages access",
+      "Git commit and push workflow for deployment trigger"
+    ],
+    "commands": [
+      "git add index.html",
+      "git commit -m 'Add index.html smoke test for GitHub Pages deployment'",
+      "git push origin main",
+      "git log --oneline main | head -1",
+      "curl -I https://EshaanGulia.github.io/expense-splitter/",
+      "curl https://EshaanGulia.github.io/expense-splitter/"
+    ],
+    "constraints": [
+      "File must be saved as UTF-8 (not ASCII, not UTF-16)",
+      "Em-dash character (U+2014) must be preserved in the heading",
+      "GitHub Pages must already be configured to serve from the main branch root (no changes needed)",
+      "Deployment may take 1-10 minutes after push to main",
+      "File commits normally without .gitignore exceptions",
+      "No external dependencies or build step required",
+      "Page must render identically in Chrome, Firefox, Safari, and Edge browsers"
+    ],
+    "sibling_reference": null,
+    "additional_notes": "This is the first tangible artifact for the Expense Splitter project. The repository is brand-new with minimal scaffolding (only README.md and emex-split file). No existing patterns or sibling implementations to reference. The smoke test serves as both a validation of the deployment pipeline and a placeholder for future application content."
+  },
+  "patch_plan": {
+    "target_files": [
+      "./index.html"
+    ],
+    "changes": [
+      {
+        "file": "./index.html",
+        "action": "create",
+        "description": "Create a new static HTML5 file at the repository root with the following structure:\n- DOCTYPE html declaration\n- <html> root element\n- <head> section containing:\n  - <meta charset=\"UTF-8\"> as the first meta tag\n  - <title>Expense Splitter</title>\n- <body> section containing:\n  - Exactly one <h1> tag with text 'Expense Splitter \u2014 Coming Soon' (with em-dash U+2014)\n  - Exactly one <p> tag with text 'Coming soon. Check back later.'\n- No external stylesheets, scripts, images, or other assets\n- File must be saved with UTF-8 encoding\n- Minimal HTML5 boilerplate; no CSS or JavaScript"
+      },
+      {
+        "file": ".git/objects (internal)",
+        "action": "implicit",
+        "description": "Git commit and push workflow:\n1. Stage the file: git add index.html\n2. Create commit: git commit -m 'Add index.html smoke test for GitHub Pages deployment'\n3. Push to main: git push origin main\n4. Verify commit appears in git log --oneline main"
+      }
+    ],
+    "acceptance_criteria": [
+      "File ./index.html is created with UTF-8 encoding and line endings preserved",
+      "File contains HTML5 DOCTYPE declaration",
+      "File contains <html>, <head>, and <body> tags with proper nesting",
+      "head section includes <meta charset=\"UTF-8\"> as first meta tag",
+      "head section includes <title>Expense Splitter</title>",
+      "body contains exactly one <h1> tag with text 'Expense Splitter \u2014 Coming Soon' (with U+2014 em-dash)",
+      "body contains exactly one <p> tag with text 'Coming soon. Check back later.'",
+      "File has no external stylesheets, scripts, images, or asset references",
+      "File is saved with UTF-8 encoding (not ASCII, not UTF-16)",
+      "File is staged with git add, committed with message 'Add index.html smoke test for GitHub Pages deployment', and pushed to origin/main",
+      "Command 'git log --oneline main | head -1' shows the commit is present"
+    ],
+    "max_files_to_change": 1
+  },
+  "_validation_oracles": [
+    {
+      "oracle": "schema_validation",
+      "passed": true,
+      "duration_seconds": 0.0,
+      "errors": []
+    }
+  ]
+}
